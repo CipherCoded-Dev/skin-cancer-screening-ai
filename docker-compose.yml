@@ -1,0 +1,12 @@
+version: "3.8"
+
+services:
+  backend:
+    build:
+      context: ./dermascan-backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./dermascan-backend/weights:/app/weights
+    environment:
+      - MODEL_WEIGHTS_PATH=/app/weights/best_dermascan_efficientnet.pth

@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.pyc
+venv/
+.venv/
+*.egg-info/
+.pytest_cache/
+
+# Model weights & data
+# NOTE: *.pth is intentionally NOT ignored — the trained model
+# (best_dermascan_efficientnet.pth, ~16MB) is committed normally,
+# well under GitHub's 100MB single-file limit.
+*.h5
+/ml_training/data/raw/*
+/ml_training/data/processed/*
+!/ml_training/data/raw/.gitkeep
+!/ml_training/data/processed/.gitkeep
+
+# Mobile
+node_modules/
+build/
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.expo/
+
+# Env / secrets
+.env
+*.env.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Logs
+*.log
