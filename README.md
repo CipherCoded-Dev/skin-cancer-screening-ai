@@ -1,89 +1,138 @@
-# 🔬 DermaScan AI
+# 🔬 DermaScan AI — Intelligent Skin Lesion Screening & Explainability
 
-Smartphone-based skin lesion screening tool: an AI-assisted, explainable triage aid for regions where dermatologist access is scarce.
+DermaScan AI is a full-stack, AI-powered assistive screening application designed to analyze skin lesions across 7 dermoscopic diagnostic categories using deep learning. Built for fast edge/web inference, it combines a lightweight ONNX Runtime backend with an interactive cross-platform frontend (Expo/React Native), providing instant risk classification alongside visual Grad-CAM interpretability.
 
-Capture a lesion photo → run an on-device quality check → get a 7-class, risk-tiered AI screening with a Grad-CAM explainability heatmap.
-
----
-
-## What It Does
-
-1. **Capture** — the user takes a photo of a skin lesion (or picks one from their gallery) via the mobile app.
-2. **Quality Gate** — an OpenCV blur/lighting check runs before inference, rejecting unusable photos rather than silently mis-scoring them.
-3. **Classification** — a fine-tuned EfficientNet-B0 model classifies the lesion into one of 7 standard dermoscopic categories and assigns a risk tier (Low / Moderate / High).
-4. **Explainability** — a Grad-CAM heatmap highlights exactly which region of the lesion drove the prediction, so the result isn't a black box.
-5. **Output** — the app displays the prediction, risk tier, confidence, full class probability breakdown, and the heatmap, alongside a clear non-diagnostic disclaimer.
+> **Disclaimer:** *DermaScan AI is an assistive research and educational screening tool, not a certified medical diagnosis. Always consult a board-certified dermatologist for clinical evaluations.*
 
 ---
 
-## Key Technical Highlight: Data Leakage Correction
+## Key Features
 
-HAM10000 contains multiple photos of the same physical lesion. A naive random train/validation split can leak different photos of the same lesion across both sets, inflating reported accuracy. This project identified that issue and switched to a **lesion-grouped `GroupShuffleSplit`** (grouped by `lesion_id`), guaranteeing no lesion's photos appear in both sets.
-
-This dropped the headline accuracy from a leaked **88.92%** down to an honest **80.48%** — but the corrected number reflects true performance on lesions the model has never seen, which is what matters for a real user's phone photo. Full write-up: [`docs/data_leakage_finding.md`](docs/data_leakage_finding.md).
-
-**Final locked model metrics** (leakage-corrected, fine-tuned checkpoint):
-
-| Metric | Value |
-|---|---|
-| Overall Accuracy | 80.48% |
-| Macro ROC-AUC | 0.9631 |
-| Melanoma (mel) Recall / Precision | 74.19% / 47.10% |
-| BCC Recall / Precision | 84.85% / 69.14% |
-| Akiec Recall / Precision | 50.00% / 58.54% |
-| NV Recall / Precision | 85.83% / 94.27% |
-| Malignant-Class Macro F1 | 62.58% |
-| Malignant-Class Macro Recall | 69.68% |
+- **7-Class Diagnostic Classification:** Aligned with the HAM10000 dataset standard:
+  - Melanoma (`MEL`)
+  - Melanocytic Nevi (`NV`)
+  - Basal Cell Carcinoma (`BCC`)
+  - Actinic Keratoses / Intraepithelial Carcinoma (`AKIEC`)
+  - Benign Keratosis (`BKL`)
+  - Dermatofibroma (`DF`)
+  - Vascular Lesions (`VASC`)
+- **Triage Risk Stratification:** Categorizes predictions into actionable risk tiers (**Low**, **Moderate**, **High**).
+- **Visual Explainability (Grad-CAM):** Generates activation heatmaps highlighting the exact lesion regions driving the prediction.
+- **Ultra-Lightweight ONNX Inference:** Migrated from standard PyTorch to **ONNX Runtime**, slashing RAM consumption (<120MB) to easily run on free/constrained cloud tiers (e.g., Render 512MB RAM).
+- **Cross-Platform Interface:** Fully responsive web and mobile application built with Expo / React Native Web.
+- **Rigorous Model Evaluation:** Trained with a lesion-grouped train/validation split (`GroupShuffleSplit` on `lesion_id`) to eliminate data leakage between duplicate lesion photos — a common but overlooked pitfall on HAM10000.
 
 ---
 
-## Architecture
+## Architecture & Tech Stack
 
-```
-Capture photo on phone
-        │
-        ▼
-OpenCV quality gate (blur / lighting check)
-        │
-        ▼
-CNN inference → 7-class + risk tier
-        │
-        ▼
-Grad-CAM heatmap overlay
-        │
-        ▼
-Risk report displayed in-app
-```
+### Frontend
+- **Framework:** Expo SDK / React Native (Web, iOS, Android)
+- **Deployment:** Vercel
+- **Styling & Components:** React Native Web, Lucide Icons, Expo Vector Icons
 
-Full architecture notes: [`docs/architecture.md`](docs/architecture.md)
+### Backend & Inference Engine
+- **API Framework:** FastAPI (Python 3.10+)
+- **Model Architecture:** EfficientNet-B0
+- **Runtime:** ONNX Runtime (`onnxruntime`)
+- **Deployment:** Render (Dockerized Web Service)
+- **Image Processing:** Pillow, OpenCV (`opencv-python-headless`), NumPy
 
-## Tech Stack
-
-| Layer | Technology |
-|---|---|
-| Mobile App | React Native (Expo) |
-| Backend API | FastAPI (Python) |
-| ML / Vision | PyTorch, torchvision (EfficientNet-B0), OpenCV, Grad-CAM |
-| Datasets | HAM10000, ISIC Archive |
-| Deployment (planned) | Docker via Hugging Face Spaces / Render |
+---
 
 ## Project Structure
 
-```
+```text
 dermascan-ai/
-├── dermascan-backend/   # FastAPI service — see dermascan-backend/README.md
-├── mobile/              # Expo React Native app — see mobile/README.md
-├── ml_training/          # training notebook + script (offline, not shipped)
-├── docs/                 # architecture, data leakage write-up, disclaimers
-└── tests/                # test stubs
+├── dermascan-backend/
+│   ├── app/
+│   │   ├── main.py                  # FastAPI application entrypoint & CORS
+│   │   ├── config.py                # Environment configuration
+│   │   ├── models/
+│   │   │   ├── neural_net.py        # Model architecture & weight loader
+│   │   │   └── schemas.py           # Pydantic request/response schemas
+│   │   └── services/
+│   │       ├── inference.py         # ONNX Runtime preprocessing & scoring
+│   │       └── gradcam.py           # Grad-CAM heatmap visualization
+│   ├── weights/
+│   │   ├── best_dermascan_efficientnet.onnx       # Optimized ONNX model graph
+│   │   └── best_dermascan_efficientnet.onnx.data  # Model weight parameters
+│   ├── Dockerfile                   # Production container definition
+│   └── requirements.txt             # Lightweight backend dependencies
+│
+└── mobile/
+    ├── assets/                      # App icons and splash assets
+    ├── constants/
+    │   └── theme.js                 # Global styles, palette & API endpoints
+    ├── src/
+    │   ├── screens/                 # ScannerScreen, ResultScreen, HistoryScreen, OnboardingScreen
+    │   ├── components/              # UI elements & Grad-CAM heatmap viewer
+    │   └── services/
+    │       └── api.js               # Cross-platform fetch & FormData pipeline
+    ├── app.json                     # Expo configuration
+    └── package.json                 # Web & mobile dependencies
 ```
 
-## Setup
+---
 
-Each component has its own detailed setup guide:
-- **Backend:** [`dermascan-backend/README.md`](dermascan-backend/README.md)
-- **Mobile App:** [`mobile/README.md`](mobile/README.md)
+## Getting Started Locally
 
-## Non-Diagnostic Disclaimer
+### 1. Clone the Repository
+```bash
+git clone https://github.com/<your-username>/<repo-name>.git
+cd <repo-name>
+```
 
-DermaScan AI is an assistive screening tool, not a medical diagnosis. It does not replace a licensed dermatologist. See [`docs/non_diagnostic_disclaimer.md`](docs/non_diagnostic_disclaimer.md).
+### 2. Backend Setup
+```bash
+cd dermascan-backend
+
+# Create and activate virtual environment
+python -m venv venv
+# On Windows:
+.\venv\Scripts\activate
+# On Linux/macOS:
+source venv/bin/activate
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Start local FastAPI server
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+```
+The API documentation will be accessible at `http://localhost:8000/docs`.
+
+### 3. Frontend Setup
+```bash
+cd ../mobile
+
+# Install dependencies
+npm install
+
+# Start the Expo development server
+npx expo start
+```
+- Press `w` to open in your default web browser.
+- Scan the QR code with the Expo Go app to test on physical iOS/Android devices.
+
+---
+
+## Production Deployments
+
+| Component | Platform | URL |
+|---|---|---|
+| Frontend (Expo Web) | Vercel | `https://skin-cancer-screening-6fqk23qrd-ciphercoded-devs-projects.vercel.app/` |
+| Backend API | Render | `https://dermascan-ai-backend-app.onrender.com/` |
+
+---
+
+## Security & Privacy
+
+- Images uploaded for screening are processed in memory and are not persisted to disk or remote storage databases.
+- CORS policies are strictly configured for authenticated cross-origin frontend communication.
+
+---
+
+## License
+
+This project is licensed under the MIT License — see the `LICENSE` file for details.
