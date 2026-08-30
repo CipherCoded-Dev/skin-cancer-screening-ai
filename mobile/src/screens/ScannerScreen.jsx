@@ -1,6 +1,5 @@
 import React, { useRef, useState } from "react";
 import {
-  ActivityIndicator,
   Alert,
   Image,
   StyleSheet,
@@ -12,7 +11,9 @@ import { CameraView, useCameraPermissions } from "expo-camera";
 import * as ImagePicker from "expo-image-picker";
 
 import CameraReticle from "../components/CameraReticle";
+import AnalyzingOverlay from "../components/AnalyzingOverlay";
 import { useCameraQuality } from "../hooks/useCameraQuality";
+import { useScanHistory } from "../hooks/useScanHistory";
 import { useScreening } from "../hooks/useScreening";
 import { COLORS, DISCLAIMER_TEXT } from "../../constants/theme";
 
@@ -22,6 +23,7 @@ export default function ScannerScreen({ navigation }) {
   const [capturedUri, setCapturedUri] = useState(null);
   const { warning } = useCameraQuality();
   const { isLoading, error, runScreening } = useScreening();
+  const { addEntry } = useScanHistory();
 
   if (!permission) {
     return <View style={styles.center} />;
@@ -64,6 +66,12 @@ export default function ScannerScreen({ navigation }) {
     if (!capturedUri) return;
     try {
       const response = await runScreening(capturedUri);
+      // Save to local history so past scans remain viewable even after
+      // the app is closed. Non-blocking: history failures should never
+      // prevent the user from seeing their result.
+      addEntry({ originalUri: capturedUri, result: response }).catch((err) =>
+        console.warn("Failed to save scan to history", err)
+      );
       navigation.navigate("Result", { result: response, originalUri: capturedUri });
     } catch (err) {
       Alert.alert(
@@ -82,10 +90,7 @@ export default function ScannerScreen({ navigation }) {
         <Image source={{ uri: capturedUri }} style={styles.preview} resizeMode="cover" />
 
         {isLoading ? (
-          <View style={styles.loadingOverlay}>
-            <ActivityIndicator size="large" color={COLORS.primary} />
-            <Text style={styles.loadingText}>Analyzing lesion...</Text>
-          </View>
+          <AnalyzingOverlay />
         ) : (
           <View style={styles.actionRow}>
             <TouchableOpacity style={styles.secondaryButton} onPress={handleRetake}>
@@ -106,6 +111,16 @@ export default function ScannerScreen({ navigation }) {
     <View style={styles.container}>
       <CameraView ref={cameraRef} style={styles.camera} facing="back" />
       <CameraReticle warning={warning} />
+
+      <View style={styles.topBar}>
+        <View style={styles.topBarSpacer} />
+        <TouchableOpacity
+          style={styles.historyButton}
+          onPress={() => navigation.navigate("History")}
+        >
+          <Text style={styles.historyButtonText}>History</Text>
+        </TouchableOpacity>
+      </View>
 
       <View style={styles.controls}>
         <TouchableOpacity style={styles.galleryButton} onPress={handlePickFromGallery}>
@@ -141,6 +156,32 @@ const styles = StyleSheet.create({
   },
   preview: {
     flex: 1,
+  },
+  topBar: {
+    position: "absolute",
+    top: 50,
+    left: 0,
+    right: 0,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 20,
+  },
+  topBarSpacer: {
+    flex: 1,
+  },
+  historyButton: {
+    backgroundColor: "rgba(0,0,0,0.4)",
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.3)",
+  },
+  historyButtonText: {
+    color: "#fff",
+    fontSize: 13,
+    fontWeight: "600",
   },
   controls: {
     position: "absolute",
@@ -206,21 +247,6 @@ const styles = StyleSheet.create({
   secondaryButtonText: {
     color: "#fff",
     fontWeight: "700",
-    fontSize: 15,
-  },
-  loadingOverlay: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: "rgba(0,0,0,0.5)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  loadingText: {
-    color: "#fff",
-    marginTop: 12,
     fontSize: 15,
   },
   permissionText: {

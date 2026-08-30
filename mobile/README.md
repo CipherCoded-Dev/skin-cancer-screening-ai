@@ -1,43 +1,68 @@
-# DermaScan AI - Mobile App (Expo)
+# 📱 DermaScan AI — Mobile & Web Client (Expo)
 
-## Setup
+Cross-platform client interface built with React Native and Expo for skin lesion capture, immediate inference display, and visual Grad-CAM exploration.
+
+---
+
+## 🚀 Quickstart & Setup
+
+### 1. Install Dependencies
 
 ```bash
 cd mobile
 npm install
+```
+
+### 2. Start Development Server
+
+```bash
 npx expo start
 ```
 
-Scan the QR code with the Expo Go app on your phone (same WiFi network as your laptop), or press `a`/`i` in the terminal for an Android/iOS emulator.
+- **Web:** Press `w` to open in browser.
+- **Physical Phone (iOS/Android):** Scan the terminal QR code using the Expo Go app.
+- **Emulator:** Press `a` (Android) or `i` (iOS simulator).
 
-## Before running - required changes
+---
 
-1. **Update the API base URL.** Open `constants/theme.js` and change:
-   ```js
-   export const API_BASE_URL = "http://192.168.1.42:8000"; // <-- CHANGE THIS
-   ```
-   to your laptop's actual LAN IP (find it with `ipconfig` on Windows or `ifconfig | grep "inet "` on Mac/Linux). `localhost` will NOT work when testing on a physical phone, since it refers to the phone itself.
+## ⚙️ Configuration
 
-2. **Add real icon/splash assets.** The `assets/` folder needs actual PNG files:
-   - `icon.png` (1024x1024)
-   - `adaptive-icon.png` (1024x1024, Android)
-   - `splash-icon.png`
-   - `favicon.png` (web only)
+### API Endpoint Connection
 
-   These are placeholders you'll need to add - Expo will error on build without them. For a hackathon demo, any square PNG works as a stand-in.
+Open `constants/theme.js` to point to your target backend:
 
-3. **The `/api/v1/export-report` endpoint does not exist yet** on the backend. `ExportModal.jsx` calls it via `src/services/api.js`'s `exportReport()`. You have two options:
-   - Ask me to write that FastAPI endpoint (wraps the existing `app/services/pdf_generator.py`), or
-   - For the demo, skip the Export screen entirely and rely on the Result screen (prediction + risk tier + Grad-CAM) as your shown output - this is still a complete, working screening flow without it.
+**Cloud Deployment (Production):**
+```javascript
+export const API_BASE_URL = "https://your-backend-url.example.com";
+```
 
-## What's implemented
+**Local Testing on Physical Device:**
+```javascript
+export const API_BASE_URL = "http://<YOUR_LOCAL_LAN_IP>:8000";
+```
 
-- **ScannerScreen** - live camera capture with a reticle overlay, plus a gallery-import fallback, wired to call `POST /api/v1/screen`.
-- **ResultScreen** - shows risk badge, predicted class, confidence, Grad-CAM heatmap (toggle vs. original photo), and full 7-class probability bars.
-- **ExportModal** - PDF export UI, blocked on the backend endpoint (see above).
-- **api.js** - matches your actual backend response shape (`predicted_class`, `risk_tier`, `confidence`, `class_probabilities`, `heatmap_base64`, `disclaimer`).
+---
 
-## Known gaps to know about
+## 📦 Features Implemented
 
-- `useCameraQuality.js` is currently a placeholder - it doesn't yet read live camera brightness data (would need `expo-camera`'s frame processor or a native module). The server-side quality gate in the backend still runs regardless, so bad photos are still caught - this hook was just meant to warn the user *before* upload.
-- No automated tests for the mobile app yet.
+- **Scanner Screen:** Image capture interface with alignment reticle and local camera-roll picker.
+- **Inference Results:** Displays triage risk badge (High, Moderate, Low), predicted category, and confidence breakdown.
+- **Visual Explainability:** Interactive toggle comparing the raw uploaded lesion against the Grad-CAM saliency heatmap.
+- **Scan History:** Locally persisted history of past scans with thumbnail, timestamp, and risk tier.
+- **Onboarding:** First-launch walkthrough explaining the capture → screening → explainability flow.
+- **Responsible AI Disclaimer:** Built-in clinical notice emphasizing assistive triage functionality.
+
+---
+
+## 🌐 Web Deployment (Vercel)
+
+The client is configured for static web export using Expo Web and Vercel:
+
+```bash
+# Generate static production web export
+npm run build:web
+```
+
+- **Build Command:** `npx expo export -p web`
+- **Output Directory:** `dist`
+- Single Page App (SPA) routing rules are pre-configured in `vercel.json`.

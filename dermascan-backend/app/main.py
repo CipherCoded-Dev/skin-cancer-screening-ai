@@ -17,10 +17,11 @@ app = FastAPI(
     version="0.1.0",
 )
 
-# Allow the mobile app (and local dev) to call this API.
+# Permit cross-origin requests from Expo, React Web/Vercel, and local testing
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # TODO: restrict to the mobile app's origin before any public deploy
+    allow_origins=getattr(settings, "CORS_ORIGINS", ["*"]),
+    allow_credentials=getattr(settings, "CORS_ALLOW_CREDENTIALS", False),
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -30,4 +31,8 @@ app.include_router(api_router, prefix="/api/v1")
 
 @app.get("/")
 def root():
-    return {"service": "DermaScan AI", "status": "running"}
+    return {
+        "service": "DermaScan AI",
+        "status": "running",
+        "docs": "/docs",
+    }

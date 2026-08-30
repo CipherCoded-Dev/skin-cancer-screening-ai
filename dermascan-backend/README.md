@@ -1,47 +1,62 @@
-# DermaScan AI — Backend
+# 🔬 DermaScan AI — Backend Service
 
-FastAPI service that runs the skin lesion screening pipeline: quality gate → inference → Grad-CAM → risk tiering.
+FastAPI backend service running the dermatological screening pipeline: image quality gating → deep learning inference (PyTorch EfficientNet-B0) → Grad-CAM explainability → clinical risk tiering.
 
-## Setup
+---
+
+## 🚀 Quickstart & Setup
+
+### 1. Local Environment Setup
 
 ```bash
-cd dermascan-backend
+cd backend
 python -m venv venv
-source venv/bin/activate   # Windows: venv\Scripts\activate
+
+# Windows:
+venv\Scripts\activate
+# macOS/Linux:
+source venv/bin/activate
+
 pip install -r requirements.txt
 ```
 
-Place your trained checkpoint at:
+### 2. Model Weights
+
+Place the trained model checkpoint at:
 ```
 weights/best_dermascan_efficientnet.pth
 ```
 
-Run the server:
+
+### 3. Run Server Locally
+
 ```bash
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-**Important:** use `--host 0.0.0.0`, not the default `127.0.0.1` — otherwise the server only accepts connections from the same machine, and the mobile app (running on a phone or emulator) won't be able to reach it.
+- Interactive OpenAPI Docs: http://localhost:8000/docs
+- Health Check: http://localhost:8000/
 
-## Endpoints
+---
+
+## 📡 API Endpoints
 
 | Method | Path | Description |
 |---|---|---|
-| GET | `/` | Basic status check |
-| GET | `/api/v1/health` | Confirms the server is up and the model loaded successfully |
-| POST | `/api/v1/screen` | Upload a lesion image, get back prediction + risk tier + Grad-CAM heatmap |
+| GET | `/` | Root service status and documentation link |
+| GET | `/api/v1/health` | Health check verifying model loading and system status |
+| POST | `/api/v1/screen` | Multipart image upload returning prediction, risk tier, confidence, and Grad-CAM heatmap |
 
-Interactive API docs available at `http://localhost:8000/docs` once running.
+---
 
-## Model Architecture
+## 🧠 Model Architecture & Risk Stratification
 
-`app/models/neural_net.py` defines `DermaEfficientNet` — an EfficientNet-B0 backbone with a `Sequential(Dropout(0.3), Linear)` classifier head, and a manual forward pass that captures activations/gradients for Grad-CAM. This must exactly match the architecture used during training (`ml_training/notebooks/`) or the checkpoint will fail to load with a state_dict mismatch.
+- **Backbone:** PyTorch EfficientNet-B0 with a customized classifier head (`Dropout(0.3)` → `Linear(num_classes=7)`).
+- **Explainability:** Integrated Grad-CAM layer extracting gradient activations from final convolutional blocks for visual heatmap overlay.
 
-## Class Labels & Risk Tiers
+### Supported Classes (HAM10000)
 
-7 dermoscopic classes (from HAM10000), with risk tiers as used during training:
-
-| Class | Meaning | Risk Tier |
+| Class Code | Diagnosis | Clinical Risk Tier |
 |---|---|---|
 | mel | Melanoma | High |
 | bcc | Basal cell carcinoma | High |
@@ -51,14 +66,21 @@ Interactive API docs available at `http://localhost:8000/docs` once running.
 | df | Dermatofibroma | Low |
 | vasc | Vascular lesions | Low |
 
-## Docker
+---
+
+## 🐳 Docker Containerization & Cloud Deployment
+
+### Local Container Build & Run
 
 ```bash
 docker build -t dermascan-backend .
-docker run -p 8000:8000 -v $(pwd)/weights:/app/weights dermascan-backend
+docker run -p 10000:10000 -e PORT=10000 dermascan-backend
 ```
 
-## Known Gaps
+### Cloud Deployment Configuration (e.g. Render)
 
-- `POST /api/v1/export-report` (PDF doctor report) is not yet implemented — `pdf_generator.py` exists as the underlying logic, but no endpoint currently wraps it.
-- No live deployment yet — currently tested via local network / ngrok tunnel during development. Planned for Hugging Face Spaces deployment ahead of Final Submission.
+- **Runtime:** Docker
+- **Environment:** Reads dynamic `$PORT` environment variable injected by the host platform (defaulting to 10000).
+- **Start Command:** `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
+
+> Note: if deploying to Hugging Face Spaces instead, the platform expects the container to listen on port `7860` specifically — adjust the `EXPOSE` line in the Dockerfile and the start command port accordingly.

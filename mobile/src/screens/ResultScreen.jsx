@@ -7,7 +7,7 @@ import RiskBadge from "../components/RiskBadge";
 import { COLORS, DISCLAIMER_TEXT } from "../../constants/theme";
 
 export default function ResultScreen({ route, navigation }) {
-  const { result, originalUri } = route.params;
+  const { result, originalUri, fromHistory } = route.params;
   const {
     predicted_class: predictedClass,
     risk_tier: riskTier,
@@ -23,6 +23,12 @@ export default function ResultScreen({ route, navigation }) {
       <Text style={styles.predictedClass}>{predictedClass.toUpperCase()}</Text>
       <Text style={styles.confidence}>{Math.round(confidence * 100)}% model confidence</Text>
 
+      {!fromHistory && (
+        <View style={styles.savedBadge}>
+          <Text style={styles.savedBadgeText}>{"\u2713"} Saved to your scan history</Text>
+        </View>
+      )}
+
       <GradCamViewer originalUri={originalUri} heatmapBase64={heatmapBase64} />
 
       <View style={styles.section}>
@@ -37,24 +43,19 @@ export default function ResultScreen({ route, navigation }) {
       <View style={styles.actionRow}>
         <TouchableOpacity
           style={styles.secondaryButton}
-          onPress={() => navigation.navigate("Scanner")}
+          onPress={() => navigation.navigate("History")}
         >
-          <Text style={styles.secondaryButtonText}>Scan Another</Text>
+          <Text style={styles.secondaryButtonText}>View History</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.primaryButton}
-          onPress={() =>
-            navigation.navigate("Export", {
-              predictedClass,
-              riskTier,
-              confidence,
-              heatmapBase64,
-            })
-          }
+          onPress={() => navigation.navigate("Scanner")}
         >
-          <Text style={styles.primaryButtonText}>Export for Doctor</Text>
+          <Text style={styles.primaryButtonText}>Scan Another</Text>
         </TouchableOpacity>
       </View>
+      {/* "Export for Doctor" button removed until POST /api/v1/export-report
+          exists on the backend. Re-add once that endpoint is built. */}
     </ScrollView>
   );
 }
@@ -78,6 +79,18 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: COLORS.textSecondary,
     marginBottom: 20,
+  },
+  savedBadge: {
+    backgroundColor: COLORS.riskLowBg,
+    paddingVertical: 6,
+    paddingHorizontal: 14,
+    borderRadius: 16,
+    marginBottom: 16,
+  },
+  savedBadgeText: {
+    fontSize: 11.5,
+    fontWeight: "600",
+    color: COLORS.riskLow,
   },
   section: {
     width: "100%",

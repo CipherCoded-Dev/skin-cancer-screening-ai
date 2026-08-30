@@ -1,17 +1,9 @@
 /**
  * Forest-green clinical color tokens & API endpoint config.
- *
- * IMPORTANT: Update API_BASE_URL to your machine's LAN IP when testing
- * on a physical phone — "localhost" on the phone refers to the phone
- * itself, not your laptop running the FastAPI server.
- *
- * Find your IP:
- *   Mac/Linux: ifconfig | grep "inet "
- *   Windows:   ipconfig
- * Then set it below, e.g. "http://192.168.1.42:8000"
  */
 
-export const API_BASE_URL = "http://192.168.1.42:8000"; // <-- CHANGE THIS
+// Use your live deployed Render API URL
+export const API_BASE_URL = "https://dermascan-ai-backend.onrender.com";
 
 export const API_ENDPOINTS = {
   screen: `${API_BASE_URL}/api/v1/screen`,
