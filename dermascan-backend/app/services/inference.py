@@ -1,37 +1,31 @@
 """
-Loads the trained model once at startup and runs prediction + risk tiering.
+Loads the trained ONNX model once at startup and runs prediction + risk tiering.
 """
 
 import io
-
-import torch
-import torch.nn.functional as F
+import numpy as np
+import onnxruntime as ort
 from PIL import Image
-from torchvision import transforms
 
 from app.core.config import settings
-from app.models.neural_net import load_model
 from app.models.schemas import PredictionResult
 
-_device = "cuda" if torch.cuda.is_available() else "cpu"
-_model = None  # loaded lazily via get_model()
-
-_transform = transforms.Compose([
-    transforms.Resize((224, 224)),
-    transforms.ToTensor(),
-    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-])
+_session = None  # Loaded lazily via get_session()
 
 
-def get_model():
-    global _model
-    if _model is None:
-        _model = load_model(settings.MODEL_WEIGHTS_PATH, device=_device)
-    return _model
+def get_session():
+    global _session
+    if _session is None:
+        # Load ONNX model with single-thread optimization for memory efficiency
+        opts = ort.SessionOptions()
+        opts.intra_op_num_threads = 1
+        opts.inter_op_num_threads = 1
+        _session = ort.InferenceSession(settings.MODEL_WEIGHTS_PATH, opts)
+    return _session
 
 
 def is_model_loaded() -> bool:
-    return _model is not None
+    return _session is not None
 
 
 def _risk_tier_for_class(predicted_class: str) -> str:
@@ -42,20 +36,35 @@ def _risk_tier_for_class(predicted_class: str) -> str:
     return "Low"
 
 
-def predict(image_bytes: bytes) -> PredictionResult:
-    model = get_model()
-
+def _preprocess(image_bytes: bytes) -> np.ndarray:
     image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
-    input_tensor = _transform(image).unsqueeze(0).to(_device)
+    image = image.resize((224, 224), Image.Resampling.BILINEAR)
 
-    with torch.no_grad():
-        logits = model(input_tensor)
-        probs = F.softmax(logits, dim=1).squeeze(0).cpu()
+    img_np = np.array(image, dtype=np.float32) / 255.0
+    mean = np.array([0.485, 0.456, 0.406], dtype=np.float32)
+    std = np.array([0.229, 0.224, 0.225], dtype=np.float32)
+    img_np = (img_np - mean) / std
+    img_np = np.transpose(img_np, (2, 0, 1))
+    return np.expand_dims(img_np, axis=0)
+
+
+def _softmax(x: np.ndarray) -> np.ndarray:
+    e_x = np.exp(x - np.max(x))
+    return e_x / e_x.sum(axis=-1, keepdims=True)
+
+
+def predict(image_bytes: bytes) -> PredictionResult:
+    session = get_session()
+    input_tensor = _preprocess(image_bytes)
+
+    input_name = session.get_inputs()[0].name
+    raw_logits = session.run(None, {input_name: input_tensor})[0]
+    probs = _softmax(raw_logits[0])
 
     class_probabilities = {
         settings.CLASSES[i]: float(probs[i]) for i in range(len(settings.CLASSES))
     }
-    predicted_idx = int(torch.argmax(probs))
+    predicted_idx = int(np.argmax(probs))
     predicted_class = settings.CLASSES[predicted_idx]
     confidence = float(probs[predicted_idx])
 

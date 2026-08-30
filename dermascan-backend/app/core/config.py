@@ -10,7 +10,7 @@ class Settings:
     # --- Paths ---
     ROOT_DIR: Path = Path(__file__).resolve().parent.parent.parent
     DEFAULT_WEIGHTS_PATH: str = str(
-        ROOT_DIR / "weights" / "best_dermascan_efficientnet.pth"
+        ROOT_DIR / "weights" / "best_dermascan_efficientnet.onnx"
     )
 
     MODEL_WEIGHTS_PATH: str = os.getenv("MODEL_WEIGHTS_PATH", DEFAULT_WEIGHTS_PATH)
