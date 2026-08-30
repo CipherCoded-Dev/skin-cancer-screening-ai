@@ -121,8 +121,8 @@ npx expo start
 
 | Component | Platform | URL |
 |---|---|---|
-| Frontend (Expo Web) | Vercel | `https://skin-cancer-screening-6fqk23qrd-ciphercoded-devs-projects.vercel.app/` |
-| Backend API | Render | `https://dermascan-ai-backend-app.onrender.com/` |
+| Frontend (Expo Web) | Vercel | [skin-cancer-screening-6fqk23qrd-ciphercoded-devs-projects.vercel.app](https://skin-cancer-screening-6fqk23qrd-ciphercoded-devs-projects.vercel.app/) |
+| Backend API | Render | [dermascan-ai-backend-app.onrender.com](https://dermascan-ai-backend-app.onrender.com/) |
 
 ---
 
