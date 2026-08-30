@@ -24,7 +24,8 @@ pip install -r requirements.txt
 
 Place the trained model checkpoint at:
 ```
-weights/best_dermascan_efficientnet.pth
+weights/best_dermascan_efficientnet.onnx
+weights/best_dermascan_efficientnet.onnx.data
 ```
 
 
