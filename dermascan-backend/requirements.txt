@@ -1,21 +1,10 @@
-FROM python:3.11-slim
-
-WORKDIR /app
-
-# System dependencies required by opencv and image processing
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    libgl1 \
-    libglib2.0-0 \
-    && rm -rf /var/lib/apt/lists/*
-
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-
-COPY . .
-
-# Default fallback port if PORT is not set by the host environment
-ENV PORT=10000
-EXPOSE 10000
-
-# Shell form CMD ensures $PORT is expanded dynamically at container launch
-CMD uvicorn app.main:app --host 0.0.0.0 --port $PORT
+fastapi>=0.110.0
+uvicorn[standard]>=0.28.0
+torch>=2.2.0 --index-url https://download.pytorch.org/whl/cpu
+torchvision>=0.17.0 --index-url https://download.pytorch.org/whl/cpu
+numpy>=1.26.0
+pillow>=10.2.0
+python-multipart>=0.0.9
+pydantic>=2.6.0
+pydantic-settings>=2.2.0
+reportlab>=4.1.0
