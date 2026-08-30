@@ -3,7 +3,7 @@
  */
 
 // Use your live deployed Render API URL
-export const API_BASE_URL = "https://dermascan-ai-backend.onrender.com";
+export const API_BASE_URL = "https://dermascan-ai-backend-app.onrender.com";
 
 export const API_ENDPOINTS = {
   screen: `${API_BASE_URL}/api/v1/screen`,
