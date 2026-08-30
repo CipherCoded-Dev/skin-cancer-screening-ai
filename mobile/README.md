@@ -1,4 +1,4 @@
-# 📱 DermaScan AI — Mobile & Web Client (Expo)
+# DermaScan AI — Mobile & Web Client (Expo)
 
 Cross-platform client interface built with React Native and Expo for skin lesion capture, immediate inference display, and visual Grad-CAM exploration.
 
@@ -33,7 +33,7 @@ Open `constants/theme.js` to point to your target backend:
 
 **Cloud Deployment (Production):**
 ```javascript
-export const API_BASE_URL = "https://your-backend-url.example.com";
+export const API_BASE_URL = "https://dermascan-ai-backend-app.onrender.com";
 ```
 
 **Local Testing on Physical Device:**
