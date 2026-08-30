@@ -4,12 +4,10 @@
  * Matches the actual FastAPI routes in dermascan-backend:
  *   POST /api/v1/screen          -> ScreenResponse (see app/models/schemas.py)
  *   GET  /api/v1/health          -> { status, model_loaded }
- *   POST /api/v1/export-report   -> PDF bytes (add this endpoint to the
- *                                    backend if you want a separate export
- *                                    flow; otherwise ExportModal can reuse
- *                                    the data already returned by /screen)
+ *   POST /api/v1/export-report   -> PDF bytes
  */
 
+import { Platform } from "react-native";
 import { API_ENDPOINTS } from "../../constants/theme";
 
 /**
@@ -26,18 +24,26 @@ import { API_ENDPOINTS } from "../../constants/theme";
  */
 export async function screenLesion(imageUri) {
   const formData = new FormData();
-  formData.append("image", {
-    uri: imageUri,
-    name: "lesion.jpg",
-    type: "image/jpeg",
-  });
 
+  if (Platform.OS === "web") {
+    // For web: fetch blob from image URI/dataURL and append as a true File/Blob
+    const res = await fetch(imageUri);
+    const blob = await res.blob();
+    formData.append("image", blob, "lesion.jpg");
+  } else {
+    // For iOS & Android React Native runtimes
+    formData.append("image", {
+      uri: imageUri,
+      name: "lesion.jpg",
+      type: "image/jpeg",
+    });
+  }
+
+  // Do NOT pass headers: { "Content-Type": "multipart/form-data" }
+  // fetch automatically supplies multipart/form-data with the boundary string
   const response = await fetch(API_ENDPOINTS.screen, {
     method: "POST",
     body: formData,
-    headers: {
-      "Content-Type": "multipart/form-data",
-    },
   });
 
   if (!response.ok) {
@@ -62,10 +68,6 @@ export async function checkHealth() {
 
 /**
  * Requests a doctor-ready PDF export for a completed screening result.
- * NOTE: requires a POST /api/v1/export-report endpoint on the backend
- * that accepts this payload and returns a PDF. If that endpoint isn't
- * built yet, ExportModal should be simplified to build the summary
- * from the existing /screen response instead of calling this.
  */
 export async function exportReport({ predictedClass, riskTier, confidence, heatmapBase64, patientNotes }) {
   const response = await fetch(API_ENDPOINTS.exportReport, {
