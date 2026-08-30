@@ -9,7 +9,7 @@ FastAPI backend service running the dermatological screening pipeline: image qua
 ### 1. Local Environment Setup
 
 ```bash
-cd backend
+cd dermascan-backend
 python -m venv venv
 
 # Windows:
@@ -52,7 +52,7 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 
 ## 🧠 Model Architecture & Risk Stratification
 
-- **Backbone:** PyTorch EfficientNet-B0 with a customized classifier head (`Dropout(0.3)` → `Linear(num_classes=7)`).
+- **Backbone:** ONNX Runtime EfficientNet-B0 with a customized classifier head (`Dropout(0.3)` → `Linear(num_classes=7)`).
 - **Explainability:** Integrated Grad-CAM layer extracting gradient activations from final convolutional blocks for visual heatmap overlay.
 
 ### Supported Classes (HAM10000)
