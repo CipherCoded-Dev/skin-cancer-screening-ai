@@ -3,6 +3,7 @@ import {
   Alert,
   FlatList,
   Image,
+  Platform,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -15,9 +16,11 @@ import { COLORS } from "../../constants/theme";
 
 function formatDate(timestamp) {
   const d = new Date(timestamp);
-  return d.toLocaleDateString(undefined, { month: "short", day: "numeric" }) +
+  return (
+    d.toLocaleDateString(undefined, { month: "short", day: "numeric" }) +
     " \u00b7 " +
-    d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+    d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })
+  );
 }
 
 export default function HistoryScreen({ navigation }) {
@@ -25,14 +28,24 @@ export default function HistoryScreen({ navigation }) {
 
   const handleClearAll = () => {
     if (history.length === 0) return;
-    Alert.alert(
-      "Clear all history?",
-      "This removes all saved scans from this device. This cannot be undone.",
-      [
-        { text: "Cancel", style: "cancel" },
-        { text: "Clear All", style: "destructive", onPress: clearHistory },
-      ]
-    );
+
+    if (Platform.OS === "web") {
+      const confirmed = window.confirm(
+        "Clear all history?\nThis removes all saved scans from this device. This cannot be undone."
+      );
+      if (confirmed) {
+        clearHistory();
+      }
+    } else {
+      Alert.alert(
+        "Clear all history?",
+        "This removes all saved scans from this device. This cannot be undone.",
+        [
+          { text: "Cancel", style: "cancel" },
+          { text: "Clear All", style: "destructive", onPress: clearHistory },
+        ]
+      );
+    }
   };
 
   const handleOpenEntry = (entry) => {
@@ -44,10 +57,19 @@ export default function HistoryScreen({ navigation }) {
   };
 
   const handleLongPress = (entry) => {
-    Alert.alert("Delete this scan?", "This entry will be removed from your history.", [
-      { text: "Cancel", style: "cancel" },
-      { text: "Delete", style: "destructive", onPress: () => removeEntry(entry.id) },
-    ]);
+    if (Platform.OS === "web") {
+      const confirmed = window.confirm(
+        "Delete this scan?\nThis entry will be removed from your history."
+      );
+      if (confirmed) {
+        removeEntry(entry.id);
+      }
+    } else {
+      Alert.alert("Delete this scan?", "This entry will be removed from your history.", [
+        { text: "Cancel", style: "cancel" },
+        { text: "Delete", style: "destructive", onPress: () => removeEntry(entry.id) },
+      ]);
+    }
   };
 
   if (!isLoading && history.length === 0) {
@@ -60,7 +82,10 @@ export default function HistoryScreen({ navigation }) {
         <Text style={styles.emptySubtitle}>
           Your screening history will appear here after your first scan.
         </Text>
-        <TouchableOpacity style={styles.primaryButton} onPress={() => navigation.navigate("Scanner")}>
+        <TouchableOpacity
+          style={styles.primaryButton}
+          onPress={() => navigation.navigate("Scanner")}
+        >
           <Text style={styles.primaryButtonText}>Start a Scan</Text>
         </TouchableOpacity>
       </View>
@@ -70,7 +95,9 @@ export default function HistoryScreen({ navigation }) {
   return (
     <View style={styles.container}>
       <View style={styles.headerRow}>
-        <Text style={styles.headerTitle}>{history.length} saved scan{history.length === 1 ? "" : "s"}</Text>
+        <Text style={styles.headerTitle}>
+          {history.length} saved scan{history.length === 1 ? "" : "s"}
+        </Text>
         {history.length > 0 && (
           <TouchableOpacity onPress={handleClearAll}>
             <Text style={styles.clearText}>Clear All</Text>
